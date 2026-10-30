@@ -1,0 +1,43 @@
+{
+  "appName": "Chicken Stall Manager",
+  "version": "2.0.0",
+  "exportDate": "2026-10-30T12:23:47.050Z",
+  "timezone": "Asia/Kolkata",
+  "summary": {
+    "totalSales": 1,
+    "totalExpenses": 0,
+    "totalStockDays": 1
+  },
+  "sales": [
+    {
+      "weight": 12,
+      "pricePerKg": 100,
+      "totalAmount": 1200,
+      "paymentMethod": "upi",
+      "id": "1793362450970_1gyunk",
+      "date": "2026-10-30",
+      "createdAt": 1793362450970,
+      "synced": false
+    }
+  ],
+  "expenses": [],
+  "stock": [
+    {
+      "date": "2026-10-30",
+      "openingStock": 150,
+      "openingQty": 50,
+      "purchased": 100,
+      "purchasedQty": 25,
+      "pricePerKg": 100,
+      "id": "1793361139213_sd5tgq",
+      "createdAt": 1793361139213,
+      "synced": false
+    }
+  ],
+  "settings": {
+    "backupEmail": "stallowner@example.com",
+    "backupEmailEnabled": true,
+    "lastBackupTime": null,
+    "lastBackupStatus": "idle"
+  }
+}

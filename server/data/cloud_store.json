@@ -1,0 +1,79 @@
+{
+  "sales": {
+    "1793362450970_1gyunk": {
+      "weight": 12,
+      "pricePerKg": 100,
+      "totalAmount": 1200,
+      "paymentMethod": "upi",
+      "id": "1793362450970_1gyunk",
+      "date": "2026-10-30",
+      "createdAt": 1793362450970,
+      "synced": false
+    },
+    "1793363148403_1279rc": {
+      "weight": 1.5,
+      "pricePerKg": 100,
+      "totalAmount": 150,
+      "paymentMethod": "cash",
+      "id": "1793363148403_1279rc",
+      "date": "2026-10-30",
+      "createdAt": 1793363148403,
+      "synced": false
+    },
+    "1793364434042_nhok3v": {
+      "weight": 45,
+      "pricePerKg": 11223,
+      "totalAmount": 505035,
+      "paymentMethod": "cash",
+      "id": "1793364434042_nhok3v",
+      "date": "2026-10-30",
+      "createdAt": 1793364434042,
+      "synced": false
+    },
+    "1793364448699_22crxu": {
+      "weight": 32,
+      "pricePerKg": 11223,
+      "totalAmount": 359136,
+      "paymentMethod": "cash",
+      "id": "1793364448699_22crxu",
+      "date": "2026-10-30",
+      "createdAt": 1793364448699,
+      "synced": false
+    }
+  },
+  "expenses": {},
+  "stock": {
+    "1793361139213_sd5tgq": {
+      "date": "2026-10-30",
+      "openingStock": 150,
+      "openingQty": 50,
+      "purchased": 100,
+      "purchasedQty": 25,
+      "pricePerKg": 100,
+      "id": "1793361139213_sd5tgq",
+      "createdAt": 1793361139213,
+      "synced": false
+    }
+  },
+  "settings": {
+    "backupEmail": "stallowner@example.com",
+    "backupEmailEnabled": true,
+    "lastBackupTime": "2026-10-30T12:23:47.050Z",
+    "lastBackupStatus": "success"
+  },
+  "backupHistory": [
+    {
+      "id": "bk_1793363027055",
+      "timestamp": "2026-10-30T12:23:47.050Z",
+      "status": "success",
+      "type": "manual",
+      "recipient": "stallowner@example.com",
+      "recordCount": {
+        "sales": 1,
+        "expenses": 0,
+        "stock": 1
+      },
+      "message": "Complete JSON archive (chicken_stall_backup_2026-10-30.json) generated and saved on server. Configure SMTP in server/.env to dispatch live emails."
+    }
+  ]
+}
