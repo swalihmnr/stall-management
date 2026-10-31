@@ -16,22 +16,32 @@ export function Stock({ store }: Props) {
     todayPricePerKg, priceHistory, priceTrend,
   } = store;
 
-  const [opening, setOpening] = useState(todayStock?.openingStock?.toString() ?? "");
-  const [openingQ, setOpeningQ] = useState(todayStock?.openingQty?.toString() ?? "");
-  const [purchase, setPurchase] = useState(todayStock?.purchased?.toString() ?? "");
-  const [purchaseQ, setPurchaseQ] = useState(todayStock?.purchasedQty?.toString() ?? "");
-  const [price, setPrice] = useState(todayStock?.pricePerKg?.toString() ?? "");
+  const toInputVal = (val?: number) => (val !== undefined && val > 0 ? val.toString() : "");
+
+  const [opening, setOpening] = useState(toInputVal(todayStock?.openingStock));
+  const [openingQ, setOpeningQ] = useState(toInputVal(todayStock?.openingQty));
+  const [purchase, setPurchase] = useState(toInputVal(todayStock?.purchased));
+  const [purchaseQ, setPurchaseQ] = useState(toInputVal(todayStock?.purchasedQty));
+  const [price, setPrice] = useState(
+    todayStock?.pricePerKg && todayStock.pricePerKg > 0
+      ? todayStock.pricePerKg.toString()
+      : (todayPricePerKg > 0 ? todayPricePerKg.toString() : "")
+  );
   const [toastMsg, setToastMsg] = useState("");
 
   useEffect(() => {
     if (todayStock) {
-      setOpening(todayStock.openingStock?.toString() ?? "");
-      setOpeningQ(todayStock.openingQty?.toString() ?? "");
-      setPurchase(todayStock.purchased?.toString() ?? "");
-      setPurchaseQ(todayStock.purchasedQty?.toString() ?? "");
-      setPrice(todayStock.pricePerKg?.toString() ?? "");
+      setOpening(toInputVal(todayStock.openingStock));
+      setOpeningQ(toInputVal(todayStock.openingQty));
+      setPurchase(toInputVal(todayStock.purchased));
+      setPurchaseQ(toInputVal(todayStock.purchasedQty));
+      if (todayStock.pricePerKg && todayStock.pricePerKg > 0) {
+        setPrice(todayStock.pricePerKg.toString());
+      } else if (todayPricePerKg > 0) {
+        setPrice(todayPricePerKg.toString());
+      }
     }
-  }, [todayStock]);
+  }, [todayStock, todayPricePerKg]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -193,6 +203,7 @@ export function Stock({ store }: Props) {
               placeholder="e.g. 220"
               className="input text-lg font-bold"
               value={price}
+              onFocus={(e) => e.target.select()}
               onChange={(e) => setPrice(e.target.value)}
             />
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -202,55 +213,85 @@ export function Stock({ store }: Props) {
 
           {/* Opening Stock (Morning) */}
           <div className="space-y-1.5">
-            <label className="label">Morning Opening Stock</label>
+            <div className="flex items-center justify-between">
+              <label className="label mb-0">Morning Opening Stock</label>
+              <span className="text-[10px] text-slate-400 font-medium">Weight & Birds</span>
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                inputMode="decimal"
-                placeholder="Weight in kg"
-                className="input text-sm"
-                value={opening}
-                onChange={(e) => setOpening(e.target.value)}
-              />
-              <input
-                type="number"
-                step="1"
-                min="0"
-                inputMode="numeric"
-                placeholder="Birds (pieces)"
-                className="input text-sm"
-                value={openingQ}
-                onChange={(e) => setOpeningQ(e.target.value)}
-              />
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                  Weight (kg)
+                </span>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  inputMode="decimal"
+                  placeholder="e.g. 50.0 kg"
+                  className="input text-sm"
+                  value={opening}
+                  onChange={(e) => setOpening(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                />
+              </div>
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                  Birds (Pieces)
+                </span>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="e.g. 25 birds"
+                  className="input text-sm"
+                  value={openingQ}
+                  onChange={(e) => setOpeningQ(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                />
+              </div>
             </div>
           </div>
 
           {/* New Stock Received Today */}
           <div className="space-y-1.5">
-            <label className="label">New Stock Purchased / Received</label>
+            <div className="flex items-center justify-between">
+              <label className="label mb-0">New Stock Purchased / Received</label>
+              <span className="text-[10px] text-slate-400 font-medium">Add to inventory</span>
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                inputMode="decimal"
-                placeholder="Weight in kg"
-                className="input text-sm"
-                value={purchase}
-                onChange={(e) => setPurchase(e.target.value)}
-              />
-              <input
-                type="number"
-                step="1"
-                min="0"
-                inputMode="numeric"
-                placeholder="Birds (pieces)"
-                className="input text-sm"
-                value={purchaseQ}
-                onChange={(e) => setPurchaseQ(e.target.value)}
-              />
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                  Weight (kg)
+                </span>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  inputMode="decimal"
+                  placeholder="e.g. 100.0 kg"
+                  className="input text-sm"
+                  value={purchase}
+                  onChange={(e) => setPurchase(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                />
+              </div>
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                  Birds (Pieces)
+                </span>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="e.g. 50 birds"
+                  className="input text-sm"
+                  value={purchaseQ}
+                  onChange={(e) => setPurchaseQ(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                />
+              </div>
             </div>
           </div>
 
