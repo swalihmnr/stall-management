@@ -19,7 +19,9 @@ export function Stock({ store }: Props) {
   const toInputVal = (val?: number) => (val !== undefined && val > 0 ? val.toString() : "");
 
   const [opening, setOpening] = useState(toInputVal(todayStock?.openingStock));
+  const [openingQ, setOpeningQ] = useState(toInputVal(todayStock?.openingQty));
   const [purchase, setPurchase] = useState(toInputVal(todayStock?.purchased));
+  const [purchaseQ, setPurchaseQ] = useState(toInputVal(todayStock?.purchasedQty));
   const [price, setPrice] = useState(
     todayStock?.pricePerKg && todayStock.pricePerKg > 0
       ? todayStock.pricePerKg.toString()
@@ -30,7 +32,9 @@ export function Stock({ store }: Props) {
   useEffect(() => {
     if (todayStock) {
       setOpening(toInputVal(todayStock.openingStock));
+      setOpeningQ(toInputVal(todayStock.openingQty));
       setPurchase(toInputVal(todayStock.purchased));
+      setPurchaseQ(toInputVal(todayStock.purchasedQty));
       if (todayStock.pricePerKg && todayStock.pricePerKg > 0) {
         setPrice(todayStock.pricePerKg.toString());
       } else if (todayPricePerKg > 0) {
@@ -41,14 +45,16 @@ export function Stock({ store }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const opVal = parseFloat(opening || "0");
-    const purVal = parseFloat(purchase || "0");
+    const opKg = parseFloat(opening || "0");
+    const opQty = parseInt(openingQ || "0", 10);
+    const purKg = parseFloat(purchase || "0");
+    const purQty = parseInt(purchaseQ || "0", 10);
     upsertStock({
       date: today,
-      openingStock: opVal,
-      openingQty: opVal > 0 ? (todayStock?.openingQty || Math.round(opVal / 2)) : 0,
-      purchased: purVal,
-      purchasedQty: purVal > 0 ? (todayStock?.purchasedQty || Math.round(purVal / 2)) : 0,
+      openingStock: opKg,
+      openingQty: opQty > 0 ? opQty : (opKg > 0 ? Math.round(opKg / 2) : 0),
+      purchased: purKg,
+      purchasedQty: purQty > 0 ? purQty : (purKg > 0 ? Math.round(purKg / 2) : 0),
       pricePerKg: parseFloat(price || "0"),
     });
     setToastMsg("✓ Stock & daily rate saved successfully!");
@@ -214,54 +220,108 @@ export function Stock({ store }: Props) {
           {/* Opening Stock (Morning) */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="label mb-0" htmlFor="stock-opening">
-                Morning Opening Stock (kg)
-              </label>
-              <span className="text-[10px] text-slate-400 font-medium">Weight in kg</span>
+              <label className="label mb-0">Morning Opening Stock</label>
+              <span className="text-[10px] text-slate-400 font-medium">Weight & Pieces</span>
             </div>
-            <div className="relative">
-              <input
-                id="stock-opening"
-                type="number"
-                step="0.1"
-                min="0"
-                inputMode="decimal"
-                placeholder="Enter opening stock (e.g. 50 kg)"
-                className="input text-base font-semibold pr-10"
-                value={opening}
-                onChange={(e) => setOpening(e.target.value)}
-                onFocus={(e) => e.target.select()}
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                kg
-              </span>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                  Weight (kg)
+                </span>
+                <div className="relative">
+                  <input
+                    id="stock-opening-kg"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    inputMode="decimal"
+                    placeholder="e.g. 50 kg"
+                    className="input text-sm pr-8 font-medium"
+                    value={opening}
+                    onChange={(e) => setOpening(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                    kg
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                  Pieces (count)
+                </span>
+                <div className="relative">
+                  <input
+                    id="stock-opening-pcs"
+                    type="number"
+                    step="1"
+                    min="0"
+                    inputMode="numeric"
+                    placeholder="e.g. 25 pcs"
+                    className="input text-sm pr-9 font-medium"
+                    value={openingQ}
+                    onChange={(e) => setOpeningQ(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                    pcs
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* New Stock Received Today */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="label mb-0" htmlFor="stock-purchase">
-                New Stock Purchased / Received (kg)
-              </label>
+              <label className="label mb-0">New Stock Purchased / Received</label>
               <span className="text-[10px] text-slate-400 font-medium">Add to inventory</span>
             </div>
-            <div className="relative">
-              <input
-                id="stock-purchase"
-                type="number"
-                step="0.1"
-                min="0"
-                inputMode="decimal"
-                placeholder="Enter new stock purchased (e.g. 100 kg)"
-                className="input text-base font-semibold pr-10"
-                value={purchase}
-                onChange={(e) => setPurchase(e.target.value)}
-                onFocus={(e) => e.target.select()}
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
-                kg
-              </span>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                  Weight (kg)
+                </span>
+                <div className="relative">
+                  <input
+                    id="stock-purchase-kg"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    inputMode="decimal"
+                    placeholder="e.g. 100 kg"
+                    className="input text-sm pr-8 font-medium"
+                    value={purchase}
+                    onChange={(e) => setPurchase(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                    kg
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                  Pieces (count)
+                </span>
+                <div className="relative">
+                  <input
+                    id="stock-purchase-pcs"
+                    type="number"
+                    step="1"
+                    min="0"
+                    inputMode="numeric"
+                    placeholder="e.g. 50 pcs"
+                    className="input text-sm pr-9 font-medium"
+                    value={purchaseQ}
+                    onChange={(e) => setPurchaseQ(e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 pointer-events-none">
+                    pcs
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
