@@ -1,10 +1,10 @@
 {
   "appName": "Chicken Stall Manager",
   "version": "2.0.0",
-  "exportDate": "2026-10-30T12:23:47.050Z",
+  "exportDate": "2026-10-30T15:30:00.600Z",
   "timezone": "Asia/Kolkata",
   "summary": {
-    "totalSales": 1,
+    "totalSales": 4,
     "totalExpenses": 0,
     "totalStockDays": 1
   },
@@ -17,6 +17,36 @@
       "id": "1793362450970_1gyunk",
       "date": "2026-10-30",
       "createdAt": 1793362450970,
+      "synced": false
+    },
+    {
+      "weight": 1.5,
+      "pricePerKg": 100,
+      "totalAmount": 150,
+      "paymentMethod": "cash",
+      "id": "1793363148403_1279rc",
+      "date": "2026-10-30",
+      "createdAt": 1793363148403,
+      "synced": false
+    },
+    {
+      "weight": 45,
+      "pricePerKg": 11223,
+      "totalAmount": 505035,
+      "paymentMethod": "cash",
+      "id": "1793364434042_nhok3v",
+      "date": "2026-10-30",
+      "createdAt": 1793364434042,
+      "synced": false
+    },
+    {
+      "weight": 32,
+      "pricePerKg": 11223,
+      "totalAmount": 359136,
+      "paymentMethod": "cash",
+      "id": "1793364448699_22crxu",
+      "date": "2026-10-30",
+      "createdAt": 1793364448699,
       "synced": false
     }
   ],
@@ -37,7 +67,7 @@
   "settings": {
     "backupEmail": "stallowner@example.com",
     "backupEmailEnabled": true,
-    "lastBackupTime": null,
-    "lastBackupStatus": "idle"
+    "lastBackupTime": "2026-10-30T12:23:47.050Z",
+    "lastBackupStatus": "success"
   }
 }

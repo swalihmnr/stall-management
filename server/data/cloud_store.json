@@ -58,7 +58,7 @@
   "settings": {
     "backupEmail": "stallowner@example.com",
     "backupEmailEnabled": true,
-    "lastBackupTime": "2026-10-30T12:23:47.050Z",
+    "lastBackupTime": "2026-10-30T15:30:00.600Z",
     "lastBackupStatus": "success"
   },
   "backupHistory": [
@@ -70,6 +70,19 @@
       "recipient": "stallowner@example.com",
       "recordCount": {
         "sales": 1,
+        "expenses": 0,
+        "stock": 1
+      },
+      "message": "Complete JSON archive (chicken_stall_backup_2026-10-30.json) generated and saved on server. Configure SMTP in server/.env to dispatch live emails."
+    },
+    {
+      "id": "bk_1793374200603",
+      "timestamp": "2026-10-30T15:30:00.600Z",
+      "status": "success",
+      "type": "scheduled",
+      "recipient": "stallowner@example.com",
+      "recordCount": {
+        "sales": 4,
         "expenses": 0,
         "stock": 1
       },
