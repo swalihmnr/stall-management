@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import type { useStore } from "../hooks/useStore";
 import type { BackupHistoryItem } from "../types";
-import { Settings, Download, Upload, Trash2, FolderPlus, Mail, AlertTriangle, ChevronDown, ChevronRight, Save, Check } from "lucide-react";
+import { Settings, Download, Upload, Trash2, FolderPlus, Mail, AlertTriangle, ChevronDown, ChevronRight, Save, Check, Smartphone, Info } from "lucide-react";
 
 type StoreType = ReturnType<typeof useStore>;
 interface Props { store: StoreType; }
@@ -39,6 +39,12 @@ export function DataManagement({ store }: Props) {
   const [history, setHistory] = useState<BackupHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Detect mobile platform
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isAndroid = /Android/i.test(ua);
+  const isMobile = isIOS || isAndroid;
+
   useEffect(() => {
     setNameInput(shopName);
     setLogoInput(shopLogo);
@@ -53,7 +59,9 @@ export function DataManagement({ store }: Props) {
 
   const loadBackupHistory = async () => {
     try {
-      const res = await fetch("/api/backup/history");
+      const res = await fetch("/api/backup/history", {
+        headers: { 'x-api-secret': import.meta.env.VITE_API_SECRET || '' },
+      });
       if (res.ok) {
         const data = await res.json();
         setHistory(data.history || []);
@@ -78,6 +86,14 @@ export function DataManagement({ store }: Props) {
   };
 
   const handlePickFolder = async () => {
+    if (isMobile) {
+      // On mobile, folder picker doesn't exist — show export guidance instead
+      setProfileSaveMsg(isIOS
+        ? 'On iPhone/iPad: use Export Backup below to save JSON to Files app.'
+        : 'On Android: use Export Backup below to save JSON to Downloads.');
+      setTimeout(() => setProfileSaveMsg(""), 5000);
+      return;
+    }
     const res = await pickStorageFolder();
     if (res.success) {
       setProfileSaveMsg(`Folder updated: ${res.folderName}`);
@@ -140,7 +156,10 @@ export function DataManagement({ store }: Props) {
     await triggerSync();
 
     try {
-      const res = await fetch("/api/backup/trigger", { method: "POST" });
+      const res = await fetch("/api/backup/trigger", {
+        method: "POST",
+        headers: { 'x-api-secret': import.meta.env.VITE_API_SECRET || '' },
+      });
       const data = await res.json();
       if (res.ok && data.success) {
         setBackupNowResult({ type: "success", msg: data.message || "Backup completed successfully!" });
@@ -237,20 +256,42 @@ export function DataManagement({ store }: Props) {
 
           <div className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60 rounded-xl p-3 space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-700 dark:text-slate-300 font-bold">Device Storage Space</span>
+              <span className="text-xs text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1.5">
+                {isMobile ? <Smartphone size={13} /> : null}
+                Device Storage
+              </span>
               <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">● Local-First</span>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              {storageFolderName ? `Selected Folder: ${storageFolderName}` : "No device folder selected yet"}
-            </p>
-            <button
-              type="button"
-              onClick={handlePickFolder}
-              className="btn-secondary w-full text-xs py-2 flex items-center justify-center gap-1.5"
-            >
-              <FolderPlus size={15} />
-              <span>{storageFolderName ? "Change Device Folder" : "Select Device Storage Folder"}</span>
-            </button>
+
+            {isMobile ? (
+              <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-500/30 rounded-lg p-2.5 space-y-1">
+                <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-300">
+                  <Info size={13} />
+                  <span className="text-[11px] font-bold">
+                    {isIOS ? 'iPhone / iPad Storage' : 'Android Storage'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-blue-600 dark:text-blue-400 leading-relaxed">
+                  {isIOS
+                    ? 'Your data is safely stored in Safari\'s IndexedDB (browser app storage). Folder picking is not available on iOS — use Export Backup below to save a JSON file to your Files app.'
+                    : 'Your data is safely stored in Chrome\'s IndexedDB (browser app storage). Use Export Backup below to save a JSON file to your Downloads folder.'}
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {storageFolderName ? `Selected Folder: ${storageFolderName}` : "No device folder selected yet"}
+                </p>
+                <button
+                  type="button"
+                  onClick={handlePickFolder}
+                  className="btn-secondary w-full text-xs py-2 flex items-center justify-center gap-1.5"
+                >
+                  <FolderPlus size={15} />
+                  <span>{storageFolderName ? "Change Device Folder" : "Select Device Storage Folder"}</span>
+                </button>
+              </>
+            )}
           </div>
 
           <div className="flex items-center justify-between pt-1">

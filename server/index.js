@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -52,35 +53,101 @@ function saveStore() {
 }
 
 const app = express();
-app.use(cors());
+
+// ── Security: CORS — restrict to known origin ────────────────────────────────
+const allowedOrigin = process.env.ALLOWED_ORIGIN || 'http://localhost:5173';
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. curl in dev, server-to-server)
+    if (!origin || origin === allowedOrigin) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: Origin '${origin}' not allowed`));
+    }
+  },
+  methods: ['GET', 'POST'],
+}));
+
 app.use(express.json({ limit: '10mb' }));
 
+// ── Security: Auth middleware — shared secret token ──────────────────────────
+const API_SECRET = process.env.API_SECRET;
+
+function requireSecret(req, res, next) {
+  if (!API_SECRET) {
+    console.warn('[Security] WARNING: API_SECRET not set in server/.env — all requests allowed. Set it in production!');
+    return next();
+  }
+  const token = req.headers['x-api-secret'];
+  if (!token || token !== API_SECRET) {
+    console.warn(`[Security] Rejected unauthorized request from ${req.ip} to ${req.path}`);
+    return res.status(401).json({ error: 'Unauthorized: invalid or missing API secret' });
+  }
+  next();
+}
+
+// ── Security: Rate limiting ──────────────────────────────────────────────────
+const syncLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many sync requests, please slow down.' },
+});
+
+const backupLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many backup requests. Please wait.' },
+});
+
+const settingsLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many settings requests.' },
+});
+
 // ── 1. Cloud Sync Endpoint ──────────────────────────────────────────────────
-app.post('/api/sync', (req, res) => {
+app.post('/api/sync', syncLimiter, requireSecret, (req, res) => {
   try {
     const { sales = [], expenses = [], stock = [], queue = [] } = req.body;
 
+    // Input validation: prevent record flooding
+    const MAX_RECORDS = 10000;
+    if (sales.length > MAX_RECORDS || expenses.length > MAX_RECORDS || stock.length > MAX_RECORDS) {
+      return res.status(400).json({ error: 'Payload record count exceeds allowed limit' });
+    }
+
+    // Safe ID pattern: 5-80 characters, alphanumeric + underscore + hyphen
+    const isSafeId = (id) => typeof id === 'string' && /^[A-Za-z0-9_-]{5,80}$/.test(id);
+
     // Upsert sales idempotently by ID
     for (const s of sales) {
-      if (s && s.id) cloudStore.sales[s.id] = s;
+      if (s && isSafeId(s.id)) cloudStore.sales[s.id] = s;
     }
 
     // Upsert expenses idempotently by ID
     for (const e of expenses) {
-      if (e && e.id) cloudStore.expenses[e.id] = e;
+      if (e && isSafeId(e.id)) cloudStore.expenses[e.id] = e;
     }
 
     // Upsert stock by date & ID
     for (const st of stock) {
       if (st && (st.id || st.date)) {
-        const key = st.id || st.date;
-        cloudStore.stock[key] = st;
+        const key = String(st.id || st.date);
+        if (isSafeId(key) || /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(key)) {
+          cloudStore.stock[key] = st;
+        }
       }
     }
 
     // Process deletions in queue
     for (const q of queue) {
-      if (q.action === 'delete') {
+      if (q.action === 'delete' && isSafeId(q.recordId)) {
         if (q.entityType === 'sale') delete cloudStore.sales[q.recordId];
         if (q.entityType === 'expense') delete cloudStore.expenses[q.recordId];
         if (q.entityType === 'stock') delete cloudStore.stock[q.recordId];
@@ -105,7 +172,7 @@ app.post('/api/sync', (req, res) => {
 });
 
 // ── 2. Settings Endpoints ────────────────────────────────────────────────────
-app.get('/api/backup/email-settings', (req, res) => {
+app.get('/api/backup/email-settings', settingsLimiter, requireSecret, (req, res) => {
   res.json({
     email: cloudStore.settings.backupEmail,
     enabled: cloudStore.settings.backupEmailEnabled,
@@ -114,16 +181,16 @@ app.get('/api/backup/email-settings', (req, res) => {
   });
 });
 
-app.post('/api/backup/email-settings', (req, res) => {
+app.post('/api/backup/email-settings', settingsLimiter, requireSecret, (req, res) => {
   const { email, enabled } = req.body;
-  if (email !== undefined) cloudStore.settings.backupEmail = email;
+  if (email !== undefined) cloudStore.settings.backupEmail = String(email).slice(0, 254);
   if (enabled !== undefined) cloudStore.settings.backupEmailEnabled = Boolean(enabled);
   saveStore();
   res.json({ success: true, settings: cloudStore.settings });
 });
 
 // ── 3. Backup History ────────────────────────────────────────────────────────
-app.get('/api/backup/history', (req, res) => {
+app.get('/api/backup/history', settingsLimiter, requireSecret, (req, res) => {
   res.json({ history: cloudStore.backupHistory.slice(-50).reverse() });
 });
 
@@ -267,7 +334,7 @@ async function executeBackup(type = 'manual') {
 }
 
 // ── 5. Manual Backup Now Route ──────────────────────────────────────────────
-app.post('/api/backup/trigger', async (req, res) => {
+app.post('/api/backup/trigger', backupLimiter, requireSecret, async (req, res) => {
   try {
     const result = await executeBackup('manual');
     res.json(result);

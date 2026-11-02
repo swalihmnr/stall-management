@@ -216,7 +216,7 @@ export function useStore() {
   const profitToday = totalSalesToday - totalExpensesToday;
 
   // ── Export / Import / Clear ────────────────────────────────────────────────
-  const exportData = () => {
+  const exportData = async () => {
     const data = JSON.stringify(
       {
         version: 2,
@@ -231,12 +231,52 @@ export function useStore() {
       2
     );
     const blob = new Blob([data], { type: 'application/json' });
+    const filename = `chicken_stall_backup_${today}.json`;
+
+    // Detect platform
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isAndroid = /Android/i.test(ua);
+
+    // Try Web Share API (works well on Android Chrome & iOS Safari 15+)
+    if ((isIOS || isAndroid) && typeof navigator !== 'undefined' && 'share' in navigator) {
+      try {
+        const file = new File([blob], filename, { type: 'application/json' });
+        if ((navigator as any).canShare && (navigator as any).canShare({ files: [file] })) {
+          await (navigator as any).share({ files: [file], title: 'Chicken Stall Backup', text: `Backup for ${today}` });
+          return;
+        }
+      } catch (shareErr: any) {
+        if (shareErr.name !== 'AbortError') {
+          console.warn('Web Share failed, falling back:', shareErr);
+        } else {
+          return; // User cancelled the share sheet
+        }
+      }
+    }
+
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `chicken_stall_backup_${today}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+
+    if (isIOS) {
+      // iOS Safari doesn't support programmatic blob downloads.
+      // Open in new tab — Safari will show "Open in Files" / "Save to Files" option.
+      const newTab = window.open(url, '_blank');
+      if (!newTab) {
+        // Popup blocked — show the URL so user can long-press
+        alert(`Your browser blocked the download popup. Long-press this link and choose "Download Linked File": ${url}`);
+      }
+      // Note: can't revoke immediately since the tab still needs it
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } else {
+      // Standard download for Android Chrome & desktop
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   };
 
   const importData = (file: File): Promise<{ salesCount: number; expensesCount: number; stockCount: number }> => {
@@ -317,7 +357,10 @@ export function useStore() {
       if (navigator.onLine) {
         fetch('/api/backup/email-settings', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-secret': import.meta.env.VITE_API_SECRET || '',
+          },
           body: JSON.stringify({ email, enabled }),
         }).catch(() => {});
       }
@@ -383,17 +426,32 @@ export function useStore() {
 
   const pickStorageFolder = async (): Promise<{ success: boolean; folderName?: string; error?: string }> => {
     try {
-      if (typeof window !== 'undefined' && 'showDirectoryPicker' in window) {
-        const dirHandle = await (window as any).showDirectoryPicker({
-          mode: 'readwrite',
-        });
+      // Detect platform
+      const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+      const isIOS = /iPhone|iPad|iPod/i.test(ua);
+      const isAndroid = /Android/i.test(ua);
+      const isMobile = isIOS || isAndroid;
+
+      if (!isMobile && typeof window !== 'undefined' && 'showDirectoryPicker' in window) {
+        // Desktop Chrome/Edge — actual folder picker
+        const dirHandle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
         const name = dirHandle.name || 'Selected Folder';
         await setStorageFolder(name);
         return { success: true, folderName: name };
       } else {
-        const fallbackName = 'Device Internal Storage / ChickenStall';
-        await setStorageFolder(fallbackName);
-        return { success: true, folderName: fallbackName };
+        // iOS Safari / Android Chrome — no folder picker API available.
+        // Data is stored in IndexedDB inside the browser's secure app sandbox.
+        // Users can export a JSON backup to their Files app / Downloads.
+        let platformLabel: string;
+        if (isIOS) {
+          platformLabel = 'Safari App Storage (IndexedDB) — use Export Backup to save to Files';
+        } else if (isAndroid) {
+          platformLabel = 'Chrome App Storage (IndexedDB) — use Export Backup to save to Downloads';
+        } else {
+          platformLabel = 'Browser App Storage (IndexedDB)';
+        }
+        await setStorageFolder(platformLabel);
+        return { success: true, folderName: platformLabel };
       }
     } catch (err: any) {
       if (err.name === 'AbortError') {

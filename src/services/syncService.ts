@@ -119,7 +119,10 @@ class SyncService {
       // Send to backend
       const res = await fetch('/api/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-secret': import.meta.env.VITE_API_SECRET || '',
+        },
         body: JSON.stringify({
           sales: unsyncedSales,
           expenses: unsyncedExpenses,
@@ -147,10 +150,13 @@ class SyncService {
         await db.syncQueue.clear();
 
         const nowIso = new Date().toISOString();
+        // Read existing settings to avoid overwriting user's email/preferences
+        const existingSettings = await db.settings.get('app_settings');
         await db.settings.put({
-          id: 'app_settings',
           backupEmail: '',
-          backupEmailEnabled: false,
+          backupEmailEnabled: true,
+          ...existingSettings,
+          id: 'app_settings',
           lastSyncTime: nowIso,
         });
       });

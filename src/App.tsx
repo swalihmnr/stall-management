@@ -11,7 +11,7 @@ import { Stock } from "./pages/Stock";
 import { Reports } from "./pages/Reports";
 import { DataManagement } from "./pages/DataManagement";
 import type { Tab } from "./types";
-import { Sun, Moon, RotateCw, Wifi, WifiOff, Download } from "lucide-react";
+import { Sun, Moon, RotateCw, Wifi, WifiOff, Download, Share2, X, Plus, Home, Smartphone } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -36,6 +36,10 @@ function App() {
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [openBriefingManual, setOpenBriefingManual] = useState(false);
 
+  // iOS-specific install prompt state
+  const [showIOSInstall, setShowIOSInstall] = useState(false);
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+
   const store = useStore();
   const { theme, toggleTheme } = useTheme();
 
@@ -57,6 +61,27 @@ function App() {
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
+
+  // iOS install prompt: show once per session if not already installed and not dismissed
+  useEffect(() => {
+    const ua = navigator.userAgent;
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const isInStandaloneMode =
+      ('standalone' in window.navigator && (window.navigator as any).standalone === true) ||
+      window.matchMedia('(display-mode: standalone)').matches;
+    const dismissed = localStorage.getItem('ios_install_banner_dismissed_v1');
+    if (isIOS && !isInStandaloneMode && !dismissed) {
+      // Delay slightly so app loads first
+      const t = setTimeout(() => setShowIOSInstall(true), 2500);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
+  const dismissIOSBanner = () => {
+    setShowIOSInstall(false);
+    setShowIOSInstructions(false);
+    localStorage.setItem('ios_install_banner_dismissed_v1', '1');
+  };
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -166,7 +191,7 @@ function App() {
         )}
       </header>
 
-      {/* PWA Install Banner */}
+      {/* Android/Desktop PWA Install Banner */}
       {showInstallBanner && (
         <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-4 py-2 text-xs flex items-center justify-between shadow-md">
           <div className="flex items-center gap-2">
@@ -186,6 +211,67 @@ function App() {
             >
               ✕
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* iOS Install Banner */}
+      {showIOSInstall && (
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2.5 shadow-lg">
+          <div className="max-w-md mx-auto">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Smartphone size={15} className="shrink-0" />
+                <span className="text-xs font-semibold">Install on iPhone / iPad</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  id="ios-install-how-btn"
+                  onClick={() => setShowIOSInstructions(prev => !prev)}
+                  className="bg-white/20 hover:bg-white/30 text-white font-bold px-2.5 py-1 rounded-md text-[11px] active:scale-95 transition"
+                >
+                  {showIOSInstructions ? 'Hide Steps' : 'How?'}
+                </button>
+                <button
+                  id="ios-install-dismiss-btn"
+                  onClick={dismissIOSBanner}
+                  className="text-white/70 hover:text-white p-1 active:scale-90 transition"
+                  aria-label="Dismiss iOS install prompt"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            </div>
+
+            {showIOSInstructions && (
+              <div className="mt-3 bg-white/10 backdrop-blur-sm rounded-xl p-3 space-y-2.5">
+                <p className="text-[11px] text-white/80 font-medium">Follow these steps to install the app on your home screen:</p>
+                <div className="space-y-2">
+                  {[
+                    { icon: <Share2 size={14} />, step: '1', text: 'Tap the Share button at the bottom of Safari (the box with an arrow)' },
+                    { icon: <Plus size={14} />, step: '2', text: 'Scroll down and tap "Add to Home Screen"' },
+                    { icon: <Home size={14} />, step: '3', text: 'Tap "Add" — the app icon will appear on your home screen' },
+                  ].map(({ icon, step, text }) => (
+                    <div key={step} className="flex items-start gap-2.5">
+                      <div className="shrink-0 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white">
+                        {icon}
+                      </div>
+                      <p className="text-[11px] text-white leading-snug pt-0.5">{text}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="pt-1 flex items-center gap-1.5 text-[10px] text-white/60">
+                  <span>✓</span>
+                  <span>Works offline · No App Store needed · Saves to home screen like a native app</span>
+                </div>
+                <button
+                  onClick={dismissIOSBanner}
+                  className="w-full bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-2 rounded-lg active:scale-95 transition mt-1"
+                >
+                  Got it — Don't show again
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
