@@ -10,9 +10,6 @@ function fmt(n: number) {
   return "₹" + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-const QUICK_WEIGHTS = [0.5, 1.0, 1.5, 2.0, 2.5];
-const QUICK_PIECES = [1, 2, 3, 4, 5];
-
 export function Sales({ store }: Props) {
   const {
     todaySales, totalSalesToday, todayPricePerKg,
@@ -50,18 +47,12 @@ export function Sales({ store }: Props) {
     if (todayPricePerKg > 0 && !pricePerKg) {
       setPricePerKg(todayPricePerKg.toString());
     }
-  }, [todayPricePerKg]);
+  }, [todayPricePerKg, pricePerKg]);
 
   const parsedWeight = parseFloat(weight || "0");
   const parsedPieces = pieces ? parseInt(pieces, 10) : undefined;
   const parsedPrice = parseFloat(pricePerKg || "0");
   const totalAmount = parsedWeight * parsedPrice;
-
-  const handleQuickWeight = (val: number) => {
-    const current = parseFloat(weight || "0");
-    const next = (current + val).toFixed(2).replace(/\.00$/, "");
-    setWeight(next);
-  };
 
   const commitSale = (saleData: {
     weight: number;
@@ -227,68 +218,6 @@ export function Sales({ store }: Props) {
                 value={pricePerKg}
                 onChange={(e) => setPricePerKg(e.target.value)}
               />
-            </div>
-          </div>
-
-          {/* Quick Buttons: Weight & Pieces */}
-          <div className="space-y-2">
-            {/* Quick Weight Chips */}
-            <div className="space-y-1">
-              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">Quick Weight Buttons:</span>
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                {QUICK_WEIGHTS.map((qw) => (
-                  <button
-                    key={qw}
-                    type="button"
-                    onClick={() => handleQuickWeight(qw)}
-                    className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 transition flex-shrink-0"
-                  >
-                    +{qw} kg
-                  </button>
-                ))}
-                {weight && (
-                  <button
-                    type="button"
-                    onClick={() => setWeight("")}
-                    className="bg-slate-100 dark:bg-slate-800 text-red-500 text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 flex-shrink-0 active:scale-95"
-                  >
-                    Clear Wt
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Quick Piece Count Chips */}
-            <div className="space-y-1">
-              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">Quick Piece Count:</span>
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                {QUICK_PIECES.map((p) => {
-                  const isSelected = pieces === p.toString();
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPieces(isSelected ? "" : p.toString())}
-                      className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border transition flex-shrink-0 active:scale-95 ${
-                        isSelected
-                          ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-                          : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600"
-                      }`}
-                    >
-                      {p} {p === 1 ? "pc" : "pcs"}
-                    </button>
-                  );
-                })}
-                {pieces && (
-                  <button
-                    type="button"
-                    onClick={() => setPieces("")}
-                    className="bg-slate-100 dark:bg-slate-800 text-red-500 text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 flex-shrink-0 active:scale-95"
-                  >
-                    Clear Pcs
-                  </button>
-                )}
-              </div>
             </div>
           </div>
 
