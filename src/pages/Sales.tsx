@@ -11,6 +11,7 @@ function fmt(n: number) {
 }
 
 const QUICK_WEIGHTS = [0.5, 1.0, 1.5, 2.0, 2.5];
+const QUICK_PIECES = [1, 2, 3, 4, 5];
 
 export function Sales({ store }: Props) {
   const {
@@ -19,6 +20,7 @@ export function Sales({ store }: Props) {
   } = store;
 
   const [weight, setWeight] = useState("");
+  const [pieces, setPieces] = useState("");
   const [pricePerKg, setPricePerKg] = useState(todayPricePerKg > 0 ? todayPricePerKg.toString() : "");
   const [payment, setPayment] = useState<PaymentMethod>("cash");
   const [error, setError] = useState("");
@@ -26,7 +28,13 @@ export function Sales({ store }: Props) {
 
   const [showNoFolderAlert, setShowNoFolderAlert] = useState(false);
   const [hasAcknowledgedAlert, setHasAcknowledgedAlert] = useState(false);
-  const [pendingSale, setPendingSale] = useState<{ weight: number; pricePerKg: number; totalAmount: number; paymentMethod: PaymentMethod } | null>(null);
+  const [pendingSale, setPendingSale] = useState<{
+    weight: number;
+    pieces?: number;
+    pricePerKg: number;
+    totalAmount: number;
+    paymentMethod: PaymentMethod;
+  } | null>(null);
 
   // Delete confirmation alert state
   const [saleToDelete, setSaleToDelete] = useState<Sale | null>(null);
@@ -45,6 +53,7 @@ export function Sales({ store }: Props) {
   }, [todayPricePerKg]);
 
   const parsedWeight = parseFloat(weight || "0");
+  const parsedPieces = pieces ? parseInt(pieces, 10) : undefined;
   const parsedPrice = parseFloat(pricePerKg || "0");
   const totalAmount = parsedWeight * parsedPrice;
 
@@ -54,15 +63,23 @@ export function Sales({ store }: Props) {
     setWeight(next);
   };
 
-  const commitSale = (saleData: { weight: number; pricePerKg: number; totalAmount: number; paymentMethod: PaymentMethod }) => {
+  const commitSale = (saleData: {
+    weight: number;
+    pieces?: number;
+    pricePerKg: number;
+    totalAmount: number;
+    paymentMethod: PaymentMethod;
+  }) => {
     addSale(saleData);
     if (typeof window !== "undefined") {
       localStorage.setItem("chicken_stall_active_tab", "sales");
     }
     setWeight("");
+    setPieces("");
     setShowNoFolderAlert(false);
     setPendingSale(null);
-    setToastMsg(`✓ Recorded ${saleData.weight} kg (${fmt(saleData.totalAmount)})`);
+    const pieceText = saleData.pieces ? ` (${saleData.pieces} ${saleData.pieces === 1 ? 'pc' : 'pcs'})` : "";
+    setToastMsg(`✓ Recorded ${saleData.weight} kg${pieceText} (${fmt(saleData.totalAmount)})`);
     setTimeout(() => setToastMsg(""), 2500);
   };
 
@@ -76,10 +93,15 @@ export function Sales({ store }: Props) {
       setError("Please enter a valid price per kg");
       return;
     }
+    if (parsedPieces !== undefined && (isNaN(parsedPieces) || parsedPieces < 0)) {
+      setError("Please enter a valid piece count (e.g. 1, 2) or leave empty");
+      return;
+    }
     setError("");
 
     const salePayload = {
       weight: parsedWeight,
+      pieces: parsedPieces && parsedPieces > 0 ? parsedPieces : undefined,
       pricePerKg: parsedPrice,
       totalAmount,
       paymentMethod: payment,
@@ -111,7 +133,8 @@ export function Sales({ store }: Props) {
   const confirmDeleteSale = () => {
     if (!saleToDelete) return;
     deleteSale(saleToDelete.id);
-    setToastMsg(`✓ Sale of ${saleToDelete.weight} kg removed & stock restored`);
+    const pieceText = saleToDelete.pieces ? ` (${saleToDelete.pieces} ${saleToDelete.pieces === 1 ? 'pc' : 'pcs'})` : "";
+    setToastMsg(`✓ Sale of ${saleToDelete.weight} kg${pieceText} removed & stock restored`);
     setSaleToDelete(null);
     setTimeout(() => setToastMsg(""), 2500);
   };
@@ -119,6 +142,7 @@ export function Sales({ store }: Props) {
   const cashTotal = todaySales.filter(s => s.paymentMethod === "cash").reduce((sum, s) => sum + s.totalAmount, 0);
   const upiTotal = todaySales.filter(s => s.paymentMethod === "upi").reduce((sum, s) => sum + s.totalAmount, 0);
   const totalKgSold = todaySales.reduce((sum, s) => sum + s.weight, 0);
+  const totalPiecesSold = todaySales.reduce((sum, s) => sum + (s.pieces || 0), 0);
 
   return (
     <div className="space-y-4 pb-2">
@@ -149,9 +173,9 @@ export function Sales({ store }: Props) {
       <div className="card space-y-3.5 border-orange-200 dark:border-orange-500/30">
         <form onSubmit={handleSubmit} className="space-y-3">
           {/* Inputs Grid */}
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-3 gap-2">
             <div>
-              <label className="label" htmlFor="sale-weight">
+              <label className="label text-xs" htmlFor="sale-weight">
                 Weight (kg) <span className="text-orange-500">*</span>
               </label>
               <input
@@ -162,7 +186,7 @@ export function Sales({ store }: Props) {
                 inputMode="decimal"
                 pattern="[0-9]*[.,]?[0-9]*"
                 placeholder="0.00"
-                className="input text-lg font-bold"
+                className="input text-base sm:text-lg font-bold"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 autoFocus
@@ -170,7 +194,25 @@ export function Sales({ store }: Props) {
             </div>
 
             <div>
-              <label className="label" htmlFor="sale-price">
+              <label className="label text-xs" htmlFor="sale-pieces">
+                Piece Count
+              </label>
+              <input
+                id="sale-pieces"
+                type="number"
+                step="1"
+                min="0"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="Optional"
+                className="input text-base sm:text-lg font-bold"
+                value={pieces}
+                onChange={(e) => setPieces(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="label text-xs" htmlFor="sale-price">
                 Rate / kg (₹) <span className="text-orange-500">*</span>
               </label>
               <input
@@ -181,36 +223,72 @@ export function Sales({ store }: Props) {
                 inputMode="decimal"
                 pattern="[0-9]*[.,]?[0-9]*"
                 placeholder="e.g. 220"
-                className="input text-lg font-bold"
+                className="input text-base sm:text-lg font-bold"
                 value={pricePerKg}
                 onChange={(e) => setPricePerKg(e.target.value)}
               />
             </div>
           </div>
 
-          {/* Quick Weight Chips */}
-          <div className="space-y-1">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">Quick Weight Buttons:</span>
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-              {QUICK_WEIGHTS.map((qw) => (
-                <button
-                  key={qw}
-                  type="button"
-                  onClick={() => handleQuickWeight(qw)}
-                  className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 transition flex-shrink-0"
-                >
-                  +{qw} kg
-                </button>
-              ))}
-              {weight && (
-                <button
-                  type="button"
-                  onClick={() => setWeight("")}
-                  className="bg-slate-100 dark:bg-slate-800 text-red-500 text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 flex-shrink-0 active:scale-95"
-                >
-                  Clear
-                </button>
-              )}
+          {/* Quick Buttons: Weight & Pieces */}
+          <div className="space-y-2">
+            {/* Quick Weight Chips */}
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">Quick Weight Buttons:</span>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                {QUICK_WEIGHTS.map((qw) => (
+                  <button
+                    key={qw}
+                    type="button"
+                    onClick={() => handleQuickWeight(qw)}
+                    className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 text-xs font-bold px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 transition flex-shrink-0"
+                  >
+                    +{qw} kg
+                  </button>
+                ))}
+                {weight && (
+                  <button
+                    type="button"
+                    onClick={() => setWeight("")}
+                    className="bg-slate-100 dark:bg-slate-800 text-red-500 text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 flex-shrink-0 active:scale-95"
+                  >
+                    Clear Wt
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Piece Count Chips */}
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">Quick Piece Count:</span>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                {QUICK_PIECES.map((p) => {
+                  const isSelected = pieces === p.toString();
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPieces(isSelected ? "" : p.toString())}
+                      className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border transition flex-shrink-0 active:scale-95 ${
+                        isSelected
+                          ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                          : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/80 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600"
+                      }`}
+                    >
+                      {p} {p === 1 ? "pc" : "pcs"}
+                    </button>
+                  );
+                })}
+                {pieces && (
+                  <button
+                    type="button"
+                    onClick={() => setPieces("")}
+                    className="bg-slate-100 dark:bg-slate-800 text-red-500 text-xs font-semibold px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 flex-shrink-0 active:scale-95"
+                  >
+                    Clear Pcs
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -255,7 +333,13 @@ export function Sales({ store }: Props) {
             <div>
               <span className="text-xs text-slate-600 dark:text-slate-400 uppercase font-semibold block">Total Payable</span>
               <span className="text-xs text-slate-500 font-mono">
-                {parsedWeight > 0 ? `${parsedWeight} kg × ₹${parsedPrice || 0}` : "Enter weight above"}
+                {parsedWeight > 0 ? (
+                  <>
+                    {parsedWeight} kg{parsedPieces ? ` (${parsedPieces} ${parsedPieces === 1 ? "pc" : "pcs"})` : ""} × ₹{parsedPrice || 0}
+                  </>
+                ) : (
+                  "Enter weight above"
+                )}
               </span>
             </div>
             <div className="text-right">
@@ -330,7 +414,7 @@ export function Sales({ store }: Props) {
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Are you sure you want to delete this sale of <strong>{saleToDelete.weight} kg</strong> for <strong>{fmt(saleToDelete.totalAmount)}</strong>?
+              Are you sure you want to delete this sale of <strong>{saleToDelete.weight} kg{saleToDelete.pieces ? ` (${saleToDelete.pieces} ${saleToDelete.pieces === 1 ? 'pc' : 'pcs'})` : ''}</strong> for <strong>{fmt(saleToDelete.totalAmount)}</strong>?
             </p>
 
             <div className="bg-red-50 dark:bg-red-950/30 p-2.5 rounded-xl border border-red-200 dark:border-red-900/50 text-[11px] text-red-700 dark:text-red-300">
@@ -363,6 +447,9 @@ export function Sales({ store }: Props) {
           <div className="card py-2 px-3 text-center">
             <p className="text-xs text-slate-500 dark:text-slate-400 uppercase font-semibold">Weight</p>
             <p className="text-base font-bold text-slate-800 dark:text-slate-100 mt-0.5">{totalKgSold.toFixed(2)} <span className="text-[10px] font-normal text-slate-400">kg</span></p>
+            {totalPiecesSold > 0 && (
+              <span className="text-[10px] text-orange-600 dark:text-orange-400 font-semibold block">({totalPiecesSold} pcs)</span>
+            )}
           </div>
           <div className="card py-2 px-3 text-center">
             <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase font-semibold">Cash</p>
@@ -398,9 +485,16 @@ export function Sales({ store }: Props) {
                     #{todaySales.length - idx}
                   </span>
                   <div>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      {sale.weight} kg @ ₹{sale.pricePerKg}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-slate-800 dark:text-slate-200">
+                        {sale.weight} kg @ ₹{sale.pricePerKg}
+                      </span>
+                      {sale.pieces ? (
+                        <span className="text-[10px] font-semibold bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800/60 px-1.5 py-0.2 rounded-md">
+                          {sale.pieces} {sale.pieces === 1 ? "pc" : "pcs"}
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
                       {sale.paymentMethod === "cash" ? <Banknote size={11} className="text-emerald-600" /> : <QrCode size={11} className="text-blue-500" />}
                       <span>{sale.paymentMethod === "cash" ? "Cash" : "UPI"}</span>

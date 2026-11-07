@@ -183,6 +183,7 @@ export function useStore() {
 
   const todayStock = stock.find(s => s.date === today);
   const soldToday = todaySales.reduce((sum, s) => sum + s.weight, 0);
+  const totalPiecesSoldToday = todaySales.reduce((sum, s) => sum + (s.pieces || 0), 0);
   const openingStock = todayStock?.openingStock ?? 0;
   const purchased = todayStock?.purchased ?? 0;
   const openingQty = todayStock?.openingQty ?? 0;
@@ -195,7 +196,10 @@ export function useStore() {
     ? (openingStock + purchased) / (openingQty + purchasedQty)
     : 0;
   const soldQtyEst = totalKgStock > 0 ? Math.round(soldToday / totalKgStock) : 0;
-  const remainingQty = Math.max(0, openingQty + purchasedQty - soldQtyEst);
+  const remainingQty = Math.max(
+    0,
+    openingQty + purchasedQty - (totalPiecesSoldToday > 0 ? Math.max(totalPiecesSoldToday, soldQtyEst) : soldQtyEst)
+  );
 
   // Last 7 days price history
   const priceHistory = stock
@@ -474,7 +478,7 @@ export function useStore() {
     totalSalesToday, totalExpensesToday, profitToday,
     soldToday, openingStock, purchased, remainingStock,
     // today computed qty (pieces)
-    openingQty, purchasedQty, soldQtyEst, remainingQty,
+    openingQty, purchasedQty, soldQtyEst, remainingQty, totalPiecesSoldToday,
     // price
     todayPricePerKg, priceHistory, priceTrend,
     // sync state

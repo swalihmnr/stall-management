@@ -4,6 +4,7 @@ export interface Sale {
   id: string;
   date: string;       // ISO date YYYY-MM-DD
   weight: number;     // kg
+  pieces?: number;    // piece count (number of birds/pieces)
   pricePerKg: number; // ₹
   totalAmount: number;
   paymentMethod: PaymentMethod;

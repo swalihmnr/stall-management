@@ -67,6 +67,7 @@ export function Reports({ store }: Props) {
   const totalCost = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
   const netProfit = totalRevenue - totalCost;
   const totalWeight = filteredSales.reduce((sum, s) => sum + s.weight, 0);
+  const totalPieces = filteredSales.reduce((sum, s) => sum + (s.pieces || 0), 0);
 
   const cashSales = filteredSales.filter((s) => s.paymentMethod === "cash").reduce((sum, s) => sum + s.totalAmount, 0);
   const upiSales = filteredSales.filter((s) => s.paymentMethod === "upi").reduce((sum, s) => sum + s.totalAmount, 0);
@@ -187,7 +188,7 @@ export function Reports({ store }: Props) {
             <span className="text-slate-500 dark:text-slate-400">Total Sales: </span>
             <p className="text-base font-bold text-slate-800 dark:text-slate-100">{fmt(totalRevenue)}</p>
             <span className="text-[10px] text-slate-400">
-              {filteredSales.length} sales ({totalWeight.toFixed(1)} kg)
+              {filteredSales.length} sales ({totalWeight.toFixed(1)} kg{totalPieces > 0 ? `, ${totalPieces} pcs` : ""})
             </span>
           </div>
 
@@ -251,7 +252,7 @@ export function Reports({ store }: Props) {
             Sales History ({filteredSales.length})
           </h2>
           <span className="text-[11px] text-slate-500 dark:text-slate-400">
-            {totalWeight.toFixed(2)} kg total
+            {totalWeight.toFixed(2)} kg total{totalPieces > 0 ? ` • ${totalPieces} pcs` : ""}
           </span>
         </div>
 
@@ -265,9 +266,16 @@ export function Reports({ store }: Props) {
                 className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60 text-xs"
               >
                 <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
-                    {s.weight} kg @ ₹{s.pricePerKg}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {s.weight} kg @ ₹{s.pricePerKg}
+                    </span>
+                    {s.pieces ? (
+                      <span className="text-[10px] font-semibold bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800/60 px-1.5 py-0.2 rounded-md">
+                        {s.pieces} {s.pieces === 1 ? "pc" : "pcs"}
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400">
                     {s.date} • {s.paymentMethod === "cash" ? "Cash" : "UPI"}
                   </p>

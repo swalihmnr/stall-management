@@ -12,7 +12,7 @@ export function Stock({ store }: Props) {
     upsertStock, today,
     todayStock,
     openingStock, purchased, soldToday, remainingStock,
-    openingQty, purchasedQty, soldQtyEst, remainingQty,
+    openingQty, purchasedQty, soldQtyEst, remainingQty, totalPiecesSoldToday,
     todayPricePerKg, priceHistory, priceTrend,
   } = store;
 
@@ -143,7 +143,7 @@ export function Stock({ store }: Props) {
             />
           </div>
           <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 px-0.5">
-            <span>Sold: {soldToday.toFixed(2)} kg (~{soldQtyEst} birds)</span>
+            <span>Sold: {soldToday.toFixed(2)} kg ({totalPiecesSoldToday > 0 ? `${totalPiecesSoldToday} pcs sold` : `~${soldQtyEst} birds`})</span>
             <span>Total: {totalKg.toFixed(2)} kg</span>
           </div>
         </div>
@@ -166,7 +166,11 @@ export function Stock({ store }: Props) {
         <div className="card py-2.5 px-2">
           <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block">Sold Today</span>
           <p className="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">-{soldToday.toFixed(1)} kg</p>
-          {soldQtyEst > 0 && <span className="text-[10px] text-slate-400">~{soldQtyEst} birds</span>}
+          {totalPiecesSoldToday > 0 ? (
+            <span className="text-[10px] text-slate-400">{totalPiecesSoldToday} pcs sold</span>
+          ) : soldQtyEst > 0 ? (
+            <span className="text-[10px] text-slate-400">~{soldQtyEst} birds</span>
+          ) : null}
         </div>
       </div>
 

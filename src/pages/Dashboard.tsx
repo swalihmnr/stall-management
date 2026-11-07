@@ -212,9 +212,16 @@ export function Dashboard({ store, onNavigate, onOpenBriefing }: DashboardProps)
                 className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/50 text-xs"
               >
                 <div>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
-                    {sale.weight} kg @ ₹{sale.pricePerKg}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {sale.weight} kg @ ₹{sale.pricePerKg}
+                    </span>
+                    {sale.pieces ? (
+                      <span className="text-[10px] font-semibold bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800/60 px-1.5 py-0.2 rounded-md">
+                        {sale.pieces} {sale.pieces === 1 ? "pc" : "pcs"}
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                     {sale.paymentMethod === "cash" ? "💵 Cash" : "📲 UPI"} • #{todaySales.length - idx}
                   </p>
